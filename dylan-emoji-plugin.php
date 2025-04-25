@@ -28,10 +28,15 @@ function get_folder_enabled_status()
     return get_option('emoji_folder_enabled_status', array());
 }
 
-// 获取文件夹表情包大小配置
-function get_folder_emoji_size()
+// 获取文件夹表情包宽度和高度配置
+function get_folder_emoji_width()
 {
-    return get_option('emoji_folder_emoji_size', array());
+    return get_option('emoji_folder_emoji_width', array());
+}
+
+function get_folder_emoji_height()
+{
+    return get_option('emoji_folder_emoji_height', array());
 }
 
 // 添加表情选择器到评论表单
@@ -39,7 +44,8 @@ function add_emoji_picker_to_comment_form($comment_field)
 {
     $folder_mapping = get_folder_mapping();
     $folder_enabled_status = get_folder_enabled_status();
-    $folder_emoji_size = get_folder_emoji_size();
+    $folder_emoji_width = get_folder_emoji_width();
+    $folder_emoji_height = get_folder_emoji_height();
     $emoji_groups = array();
     $emoji_folders = glob(EMOJI_FOLDER . '*', GLOB_ONLYDIR);
     foreach ($emoji_folders as $folder) {
@@ -79,8 +85,9 @@ function add_emoji_picker_to_comment_form($comment_field)
         $emoji_html .= '<div id="tab-' . $tab_index . '" class="emoji-group-tab ' . $active_class . '">';
         foreach ($emojis as $emoji) {
             $folder_key = array_search($group_name, $folder_mapping) ?: $group_name;
-            $size = isset($folder_emoji_size[$folder_key])? $folder_emoji_size[$folder_key] : '1em';
-            $emoji_html .= '<img class="emoji" src="' . esc_url($emoji['url']) . '" data-emoji="[' . $emoji['name'] . ']" alt="' . $emoji['name'] . '" style="max-width: ' . $size . '; max-height: ' . $size . '; " />';
+            $width = isset($folder_emoji_width[$folder_key])? $folder_emoji_width[$folder_key] : '1em';
+            $height = isset($folder_emoji_height[$folder_key])? $folder_emoji_height[$folder_key] : '1em';
+            $emoji_html .= '<img class="emoji" src="' . esc_url($emoji['url']) . '" data-emoji="[' . $emoji['name'] . ']" alt="' . $emoji['name'] . '" style="width: ' . $width . '; height: ' . $height . ';" />';
         }
         $emoji_html .= '</div>';
         $tab_index++;
@@ -152,7 +159,8 @@ add_filter('comment_form_field_comment', 'add_emoji_picker_to_comment_form');
 function process_emoji_in_comment($comment_text)
 {
     $folder_enabled_status = get_folder_enabled_status();
-    $folder_emoji_size = get_folder_emoji_size();
+    $folder_emoji_width = get_folder_emoji_width();
+    $folder_emoji_height = get_folder_emoji_height();
     $emoji_folders = glob(EMOJI_FOLDER . '*', GLOB_ONLYDIR);
     foreach ($emoji_folders as $folder) {
         $folder_name = basename($folder);
@@ -163,8 +171,9 @@ function process_emoji_in_comment($comment_text)
         foreach ($emoji_files as $file) {
             $emoji_name = basename($file);
             $emoji_url = plugins_url('emojis/' . basename($folder) . '/' . $emoji_name, __FILE__);
-            $size = isset($folder_emoji_size[$folder_name])? $folder_emoji_size[$folder_name] : '1em';
-            $comment_text = str_replace('[' . $emoji_name . ']', '<img class="comment-emoji" src="' . esc_url($emoji_url) . '" alt="' . $emoji_name . '" style="width: ' . $size . '; height: ' . $size . ';" />', $comment_text);
+            $width = isset($folder_emoji_width[$folder_name])? $folder_emoji_width[$folder_name] : '1em';
+            $height = isset($folder_emoji_height[$folder_name])? $folder_emoji_height[$folder_name] : '1em';
+            $comment_text = str_replace('[' . $emoji_name . ']', '<img class="comment-emoji" src="' . esc_url($emoji_url) . '" alt="' . $emoji_name . '" style="width: ' . $width . '; height: ' . $height . ';" />', $comment_text);
         }
     }
     return $comment_text;
@@ -213,7 +222,7 @@ function add_emoji_css()
             background: #000; /* owo按钮默认黑色背景 */
             color: #fff;
             margin-bottom: 10px;
-            width: auto; /* 让按钮宽度自适应内容 */
+            width: 80px;
         }
        .emoji-tab-content {
             padding-top: 0; /* 去掉顶部内边距，实现 0 间隔 */
@@ -336,27 +345,31 @@ function emoji_plugin_folder_mapping_page()
     if (isset($_POST['submit'])) {
         $folder_mapping = array();
         $folder_enabled_status = array();
-        $folder_emoji_size = array();
+        $folder_emoji_width = array();
+        $folder_emoji_height = array();
         foreach ($_POST['folder_name'] as $key => $folder) {
             if (!empty($folder)) {
                 if (!empty($_POST['display_name'][$key])) {
                     $folder_mapping[$folder] = $_POST['display_name'][$key];
                 }
                 $folder_enabled_status[$folder] = isset($_POST['folder_enabled'][$key]) && $_POST['folder_enabled'][$key] === 'on';
-                $folder_emoji_size[$folder] = $_POST['folder_emoji_size'][$key];
+                $folder_emoji_width[$folder] = $_POST['folder_emoji_width'][$key];
+                $folder_emoji_height[$folder] = $_POST['folder_emoji_height'][$key];
             }
         }
         // 保存映射关系到 WordPress 选项中
         update_option('emoji_folder_mapping', $folder_mapping);
         update_option('emoji_folder_enabled_status', $folder_enabled_status);
-        update_option('emoji_folder_emoji_size', $folder_emoji_size);
-        echo '<div class="updated"><p>映射关系、启用状态和表情包大小配置已保存。</p></div>';
+        update_option('emoji_folder_emoji_width', $folder_emoji_width);
+        update_option('emoji_folder_emoji_height', $folder_emoji_height);
+        echo '<div class="updated"><p>映射关系、启用状态、表情包宽度和高度配置已保存。</p></div>';
     }
 
     // 获取当前的映射关系和启用状态
     $folder_mapping = get_folder_mapping();
     $folder_enabled_status = get_folder_enabled_status();
-    $folder_emoji_size = get_folder_emoji_size();
+    $folder_emoji_width = get_folder_emoji_width();
+    $folder_emoji_height = get_folder_emoji_height();
     $emoji_folders = glob(EMOJI_FOLDER . '*', GLOB_ONLYDIR);
 
     // 生成表单
@@ -369,7 +382,8 @@ function emoji_plugin_folder_mapping_page()
     echo '<th>文件夹名称</th>';
     echo '<th>显示名称</th>';
     echo '<th>是否启用</th>';
-    echo '<th>表情包大小</th>';
+    echo '<th>表情包宽度</th>';
+    echo '<th>表情包高度</th>';
     echo '</tr>';
     echo '</thead>';
     echo '<tbody>';
@@ -377,12 +391,14 @@ function emoji_plugin_folder_mapping_page()
         $folder_name = basename($folder);
         $display_name = isset($folder_mapping[$folder_name]) ? $folder_mapping[$folder_name] : '';
         $enabled = isset($folder_enabled_status[$folder_name])? $folder_enabled_status[$folder_name] : true;
-        $size = isset($folder_emoji_size[$folder_name])? $folder_emoji_size[$folder_name] : '1em';
+        $width = isset($folder_emoji_width[$folder_name])? $folder_emoji_width[$folder_name] : '1em';
+        $height = isset($folder_emoji_height[$folder_name])? $folder_emoji_height[$folder_name] : '1em';
         echo '<tr>';
         echo '<td><input type="text" name="folder_name[]" value="' . esc_attr($folder_name) . '" readonly></td>';
         echo '<td><input type="text" name="display_name[]" value="' . esc_attr($display_name) . '"></td>';
         echo '<td><input type="checkbox" name="folder_enabled[]" ' . ($enabled? 'checked' : '') . '></td>';
-        echo '<td><input type="text" name="folder_emoji_size[]" value="' . esc_attr($size) . '"></td>';
+        echo '<td><input type="text" name="folder_emoji_width[]" value="' . esc_attr($width) . '"></td>';
+        echo '<td><input type="text" name="folder_emoji_height[]" value="' . esc_attr($height) . '"></td>';
         echo '</tr>';
     }
     echo '</tbody>';
